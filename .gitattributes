@@ -1,4 +1,5 @@
 *.sh text eol=lf
+*.bat text eol=crlf
 *.onnx binary
 *.npz binary
 models/current/manifest.json text eol=lf
