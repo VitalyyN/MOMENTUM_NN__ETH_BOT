@@ -20,7 +20,7 @@ from market import OHLC, feature_window
 from models import Models
 from settings import MODEL_DIR, ROOT
 from strategy import TradingBot
-from trader import D, Position, make_clients
+from trader import D, Position, Trader, make_clients
 
 
 class FakeExchange:
@@ -286,6 +286,16 @@ class IntegrationTests(unittest.TestCase):
             Models(MODEL_DIR).for_day(pd.Timestamp("2026-12-01", tz="UTC"))
         with self.assertRaises(ValueError):
             bundle.predict(window.astype(np.float32))
+
+    def test_position_ignores_account_leverage(self):
+        reader = Mock()
+        trader = Trader(reader, Mock(), Mock(), "demo")
+        position = dict(positionIdx=0, side="Buy", size="1.2", avgPrice="2200",
+                        stopLoss="1760", unrealisedPnl="15")
+        for leverage in ("1", "5", ""):
+            with self.subTest(leverage=leverage):
+                reader.get_positions.return_value = {"result": {"list": [dict(position, leverage=leverage)]}}
+                self.assertEqual(trader.position(), Position(D("1.2"), D(2200), D(1760), D(15)))
 
     def test_futures_price_and_account_equity_determine_qty(self):
         public_factory, demo = make_clients(True, {"BYBIT_DEMO_API_KEY": "TEST", "BYBIT_DEMO_API_SECRET": "TEST"})

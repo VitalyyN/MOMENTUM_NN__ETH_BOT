@@ -10,7 +10,7 @@
 
 ONNX Runtime выполняет модели через готовые DLL. Если импорт `onnxruntime` выдаёт ошибку загрузки DLL, проверьте наличие Microsoft Visual C++ Redistributable x64. Если команда `check` проходит, на этой машине уже есть необходимые библиотеки. [Требования ONNX Runtime](https://onnxruntime.ai/docs/install/#requirements) · [Загрузка Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)
 
-`DEMO = True` в `settings.py` выбирает Bybit Demo, `DEMO = False` выбирает реальный счёт. Флаг считывается при запуске. Подготовьте ETHUSDT в режиме one-way с плечом 1×. Для каждого режима свой SQLite и префикс уведомлений. Для перехода с закрытием текущей позиции сначала выполните `Stop_&_Close`, дождитесь подтверждения и остановите процесс.
+`DEMO = True` в `settings.py` выбирает Bybit Demo, `DEMO = False` выбирает реальный счёт. Флаг считывается при запуске. Подготовьте ETHUSDT в режиме one-way. Плечо задаётся в личном кабинете Bybit. Робот делит 40% equity на цену фьючерса и округляет количество ETH вниз по шагу биржи. Для каждого режима свой SQLite и префикс уведомлений. Для перехода с закрытием текущей позиции сначала выполните `Stop_&_Close`, дождитесь подтверждения и остановите процесс.
 
 ```powershell
 .\start.bat check

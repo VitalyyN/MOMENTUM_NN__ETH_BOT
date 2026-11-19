@@ -80,8 +80,6 @@ class Trader:
             raise ValueError("Для ETHUSDT требуется режим one-way")
         row = rows[0]
         size = number(row["size"])
-        if number(row["leverage"]) != 1:
-            raise ValueError("Для ETHUSDT требуется плечо 1×")
         if size and (row["side"] not in ("Buy", "Sell") or number(row["avgPrice"]) <= 0):
             raise ValueError("Не удалось определить сторону и среднюю позиции")
         qty = size if row["side"] == "Buy" else -size
