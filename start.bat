@@ -20,44 +20,45 @@ if exist "%BOT_PYTHON%" goto check_venv
 
 set "STEP=find Python 3.13 x64"
 py -3.13-64 -c "%CHECK_PYTHON%" >nul 2>&1
-if not errorlevel 1 goto create_with_launcher
+if "%ERRORLEVEL%"=="0" goto create_with_launcher
 python -c "%CHECK_PYTHON%" >nul 2>&1
-if errorlevel 1 (
+if not "%ERRORLEVEL%"=="0" (
     echo Install Python 3.13 x64 and enable the Python launcher or add Python to PATH.
     goto failed
 )
 set "STEP=create .venv"
 echo Creating .venv ...
 python -m venv .venv
-if errorlevel 1 goto failed
+if not "%ERRORLEVEL%"=="0" goto failed
 goto check_venv
 
 :create_with_launcher
 set "STEP=create .venv"
 echo Creating .venv ...
 py -3.13-64 -m venv .venv
-if errorlevel 1 goto failed
+if not "%ERRORLEVEL%"=="0" goto failed
 
 :check_venv
 set "STEP=check .venv"
 "%BOT_PYTHON%" -c "%CHECK_PYTHON%"
-if errorlevel 1 (
+if not "%ERRORLEVEL%"=="0" (
     echo The existing .venv needs a working Python 3.13 x64. Rename .venv and run again.
     goto failed
 )
 fc /b requirements.txt ".venv\requirements.applied" >nul 2>&1
-if not errorlevel 1 goto check_runtime
+if "%ERRORLEVEL%"=="0" goto check_runtime
 set "STEP=install Python dependencies"
 echo Installing Python dependencies ...
 "%BOT_PYTHON%" -m pip install --disable-pip-version-check -r requirements.txt
-if errorlevel 1 goto failed
+if not "%ERRORLEVEL%"=="0" goto failed
 copy /y requirements.txt ".venv\requirements.applied" >nul
-if errorlevel 1 goto failed
+if not "%ERRORLEVEL%"=="0" goto failed
 
 :check_runtime
 set "STEP=load ONNX Runtime"
 "%BOT_PYTHON%" -X utf8 -B -c "import onnxruntime"
-if errorlevel 1 (
+set "RESULT=%ERRORLEVEL%"
+if not "%RESULT%"=="0" (
     echo For a DLL load error, check Microsoft Visual C++ Redistributable x64.
     echo Microsoft download: https://aka.ms/vc14/vc_redist.x64.exe
     goto failed
@@ -84,8 +85,8 @@ if not exist ".env" echo If keys are not set in the environment, copy .env.examp
 "%BOT_PYTHON%" -X utf8 -B main.py
 
 :check_result
-if errorlevel 1 goto failed
-set "RESULT=0"
+set "RESULT=%ERRORLEVEL%"
+if not "%RESULT%"=="0" goto failed
 goto done
 
 :folder_error
@@ -94,9 +95,9 @@ if "%~1"=="" pause
 exit /b 1
 
 :failed
-set "RESULT=1"
+if not defined RESULT set "RESULT=%ERRORLEVEL%"
 echo.
-echo Failed to %STEP%.
+echo Failed to %STEP%. Exit code: %RESULT%.
 if "%~1"=="" pause
 
 :done
