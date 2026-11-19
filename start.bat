@@ -7,9 +7,10 @@ pushd "%~dp0" || goto folder_error
 
 if /i "%ACTION%"=="console" goto prepare
 if /i "%ACTION%"=="check" goto prepare
+if /i "%ACTION%"=="check-telegram" goto prepare
 if /i "%ACTION%"=="preview" goto prepare
 if /i "%ACTION%"=="install-task" goto prepare
-echo Usage: start.bat [console ^| check ^| preview [YYYY-MM-DD] ^| install-task]
+echo Usage: start.bat [console ^| check ^| check-telegram ^| preview [YYYY-MM-DD] ^| install-task]
 set "RESULT=2"
 goto done
 
@@ -55,6 +56,7 @@ copy /y requirements.txt ".venv\requirements.applied" >nul
 if not "%ERRORLEVEL%"=="0" goto failed
 
 :check_runtime
+if /i "%ACTION%"=="check-telegram" goto run_action
 set "STEP=load ONNX Runtime"
 "%BOT_PYTHON%" -X utf8 -B -c "import onnxruntime"
 set "RESULT=%ERRORLEVEL%"
@@ -64,9 +66,14 @@ if not "%RESULT%"=="0" (
     goto failed
 )
 
+:run_action
 set "STEP=run %ACTION%"
 if /i "%ACTION%"=="check" (
     "%BOT_PYTHON%" -X utf8 -B main.py --check-models
+    goto check_result
+)
+if /i "%ACTION%"=="check-telegram" (
+    "%BOT_PYTHON%" -X utf8 -B main.py --check-telegram
     goto check_result
 )
 if /i "%ACTION%"=="preview" (

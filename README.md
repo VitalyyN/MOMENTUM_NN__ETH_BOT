@@ -22,6 +22,28 @@ ONNX Runtime выполняет модели через готовые DLL. Ес
 
 Для фонового запуска выполните `.\start.bat install-task` из PowerShell с правами администратора. Задание `Momentum60_NN_bot` стартует при загрузке Windows от SYSTEM. Для первого запуска выберите «Выполнить» в Планировщике. Состояние, журналы и Python должны быть доступны SYSTEM. Файлы запуска привязаны к корню клона. Дневные логи пишутся в `logs/demo/` или `logs/live/`.
 
+## Telegram через отдельный прокси
+
+Если с сервера недоступен `api.telegram.org:443`, укажите в локальном `.env` адрес доверенного прокси с HTTP CONNECT. Например, `TELEGRAM_PROXY=http://proxy.example:3128`. Допускается URL с авторизацией вида `http://user:password@proxy.example:3128`. Специальные символы в имени пользователя и пароле задавайте в URL-кодировке. Настройка применяется к Telegram Bot API. Bybit и остальные процессы Windows используют своё подключение.
+
+Если есть доступный SSH-хост с выходом к Telegram, можно использовать локальный SOCKS5-туннель. Запустите его в отдельном терминале и оставьте работающим, пока нужен Telegram. [Параметр динамического перенаправления OpenSSH](https://man.openbsd.org/ssh#D)
+
+```powershell
+ssh -N -D 127.0.0.1:1080 -o ExitOnForwardFailure=yes user@host
+```
+
+Для SOCKS5 укажите `TELEGRAM_PROXY=socks5h://127.0.0.1:1080` и один раз установите `PySocks` в существующую `.venv`. [Поддержка SOCKS в Requests](https://requests.readthedocs.io/en/latest/user/advanced/#socks)
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install PySocks==1.7.1
+```
+
+После заполнения `TELEGRAM_TOKEN` и `TELEGRAM_PROXY` проверьте соединение. Команда покажет имя бота через `getMe`. Затем перезапустите робота и отправьте `/status` в личный чат. Для прямого доступа оставьте `TELEGRAM_PROXY` пустым.
+
+```powershell
+.\start.bat check-telegram
+```
+
 ## Управление и восстановление
 
 - `Start_bot` разрешает следующее своевременное решение после сверки. Робот присылает уведомление при запуске и ожидает эту команду. Нажатие после 01:00 UTC позволяет дождаться нового дневного сигнала.

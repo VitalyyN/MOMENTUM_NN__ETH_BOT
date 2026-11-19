@@ -3,23 +3,24 @@
 import argparse
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
+from importlib.util import find_spec
 from pathlib import Path
 import os
 from queue import Empty, Queue
 import threading
 import time
+from urllib.parse import unquote, urlsplit
 
 from dotenv import load_dotenv
 import pandas as pd
 from pybit.unified_trading import HTTP
 import telebot
-from telebot import types
+from telebot import apihelper, types
 
 import settings as cfg
 from journal import Journal
 from logger import setup_logging
 from market import SpotHistory
-from models import ModelBundle, Models
 from strategy import TradingBot
 from trader import D, make_clients
 
@@ -60,6 +61,28 @@ def instance(path):
         yield
 
 
+def telegram_client(log):
+    proxy_url = os.getenv("TELEGRAM_PROXY", "").strip()
+    proxy = None
+    if proxy_url:
+        try:
+            address = urlsplit(proxy_url)
+            port = address.port
+            if (address.scheme not in ("http", "https", "socks5", "socks5h")
+                    or not address.hostname or not port or address.path not in ("", "/")
+                    or address.query or address.fragment or any(char.isspace() for char in proxy_url)):
+                raise ValueError
+        except ValueError:
+            raise ValueError("TELEGRAM_PROXY должен быть URL HTTP(S) или SOCKS5 с адресом и портом.") from None
+        if address.scheme in ("socks5", "socks5h") and find_spec("socks") is None:
+            raise ValueError("Для SOCKS5 установите PySocks в окружение робота: "
+                             ".venv\\Scripts\\python.exe -m pip install PySocks==1.7.1")
+        proxy = {"https": proxy_url}
+        log.info("Telegram использует прокси из TELEGRAM_PROXY.")
+    apihelper.proxy = proxy
+    return telebot.TeleBot(os.environ["TELEGRAM_TOKEN"], threaded=False)
+
+
 class Telegram:
     def __init__(self, mode, log, sanitize):
         self.mode = mode
@@ -70,7 +93,7 @@ class Telegram:
         self.boot = int(time.time())
         self.chat = int(os.environ["TELEGRAM_CHAT_ID"])
         self.user = int(os.environ["TELEGRAM_USER_ID"])
-        self.bot = telebot.TeleBot(os.environ["TELEGRAM_TOKEN"], threaded=False)
+        self.bot = telegram_client(log)
         self.keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
         self.keyboard.row(START, SAVE, CLOSE)
         self.keyboard.row("Status", "Balance", "PnL")
@@ -132,6 +155,8 @@ def handle(command, bot, notify):
 
 
 def run(mode, telegram, log, sanitize):
+    from models import Models
+
     telegram.start()
     try:
         public, trader = make_clients(cfg.DEMO, os.environ)
@@ -199,6 +224,8 @@ def run(mode, telegram, log, sanitize):
 
 
 def preview(mode, day):
+    from models import Models
+
     public = HTTP(testnet=False, demo=False, timeout=8)
     if day > pd.Timestamp.now(tz="UTC").floor("D") or day != day.floor("D"):
         raise ValueError("Нужна прошедшая или текущая UTC-дата решения")
@@ -216,13 +243,24 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     action = parser.add_mutually_exclusive_group()
     action.add_argument("--check-models", action="store_true")
+    action.add_argument("--check-telegram", action="store_true")
     action.add_argument("--preview", nargs="?", const="", metavar="YYYY-MM-DD")
     args = parser.parse_args()
     load_dotenv(cfg.ROOT / ".env")
     mode = cfg.mode(cfg.DEMO)
     log = setup_logging(mode)
-    secrets = tuple(value for name, value in os.environ.items()
-                    if value and (name.startswith("BYBIT_") or name == "TELEGRAM_TOKEN"))
+    secrets = {value for name, value in os.environ.items()
+               if value and (name.startswith("BYBIT_") or name == "TELEGRAM_TOKEN")}
+    proxy_url = os.getenv("TELEGRAM_PROXY", "").strip()
+    if proxy_url:
+        secrets.add(proxy_url)
+        try:
+            password = urlsplit(proxy_url).password
+        except ValueError:
+            password = None
+        if password:
+            secrets.update((password, unquote(password)))
+    secrets = sorted(secrets, key=len, reverse=True)
 
     def sanitize(value):
         value = str(value)
@@ -230,11 +268,24 @@ def main():
             value = value.replace(secret, "[скрыто]")
         return value
 
+    def redact_telegram_log(record):
+        record.msg = sanitize(record.getMessage())
+        record.args = ()
+        record.exc_info = record.exc_text = None
+        return True
+
+    telebot.logger.addFilter(redact_telegram_log)
+
     try:
         if args.check_models:
+            from models import ModelBundle
+
             raw = (cfg.MODEL_DIR / "manifest.json").read_bytes()
             bundle = ModelBundle(cfg.MODEL_DIR, raw)
             print(f"Проверены пять ONNX. Период {bundle.start} — {bundle.end} UTC.")
+        elif args.check_telegram:
+            bot = telegram_client(log).get_me()
+            print(f"Telegram API доступен. Бот @{bot.username}.")
         elif args.preview is not None:
             day = pd.Timestamp(args.preview, tz="UTC") if args.preview else pd.Timestamp.now(tz="UTC").floor("D")
             preview(mode, day)
