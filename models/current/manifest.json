@@ -1,0 +1,54 @@
+{
+  "Instrument": "ETHUSDT",
+  "Features": [
+    "AlignedReturn5",
+    "AlignedReturn20",
+    "MomentumStrength60",
+    "MomentumChange5",
+    "Efficiency20",
+    "FlipCount20",
+    "VolatilityRatio",
+    "AdverseMove20",
+    "Range20",
+    "Sigma20",
+    "Conflict5",
+    "Conflict20",
+    "Side"
+  ],
+  "Seeds": [
+    11,
+    22,
+    33,
+    42,
+    55
+  ],
+  "InputShape": [
+    "batch",
+    30,
+    13
+  ],
+  "InputDtype": "float64",
+  "RiskQuantile": 0.8,
+  "RiskTargetDays": 5,
+  "CalibrationQuantile": 0.75,
+  "VotesNeeded": 3,
+  "Thresholds": {
+    "11": 0.08576388941009641,
+    "22": 0.09065484902995821,
+    "33": 0.07143187795916911,
+    "42": 0.08645715399870954,
+    "55": 0.07367763780520215
+  },
+  "ModelAsOf": "2026-11-01T00:00:00+00:00",
+  "ModelValidUntilExclusive": "2026-12-01T00:00:00+00:00",
+  "MarketEndExclusive": "2026-11-10T00:00:00+00:00",
+  "SourceManifestSHA256": "60692cd9bdca450601da61a0abd1945ba8cffe07dc656879e5efccfd1e015f96",
+  "SHA256": {
+    "11.onnx": "4cd348cc3e377d80fa7623388962667d00e3e8df1df5e04926e81b05fc01bd41",
+    "22.onnx": "cec0d1f6337b4ecc6e6102ca3ccfcabdfd5563e325e3a7dc4ce8646ae684aacd",
+    "33.onnx": "67f62b5bdc3193efa42862632952e79b2e23544c5076837d9f43c1d2c98bbf68",
+    "42.onnx": "d66dbcb2a6c3bbe293fc6255d5f409b908a4d22eb942a9dc0b8996aee9bfb889",
+    "55.onnx": "09e0f64e6c8d92b7a25fe34147bad47e5e72abb2d74ddafc73a00d49712689e6",
+    "smoke_window.npz": "d04845772db2644eae074f5a4ac45a891cc7102bef1904356fe39fdf0e35aed9"
+  }
+}

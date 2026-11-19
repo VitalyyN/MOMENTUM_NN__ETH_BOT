@@ -1,0 +1,10 @@
+/.env
+/.venv/
+/AGENTS.md
+/архив/
+/state/
+/logs/
+/cache/
+/models/.export-*/
+__pycache__/
+*.pyc
